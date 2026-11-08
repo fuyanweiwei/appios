@@ -1,0 +1,77 @@
+name: iOS 云打包
+
+# 推送代码自动打包；也可在 Actions 页手动 Run workflow
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'MyNavigation/**'
+      - 'MyWidget/**'
+      - 'ShareExtension/**'
+      - 'project.yml'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 编译并打出 IPA
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 XcodeGen 并生成工程
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      # 不签名编译：签名交给电脑上的 Sideloadly（用你的免费 Apple ID 签）
+      - name: 编译 Release
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project MyNavigation.xcodeproj \
+            -scheme MyNavigation \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            > xcodebuild.log 2>&1 || {
+              echo "❌ 编译失败，最后 60 条 error："
+              grep -n "error:" xcodebuild.log | tail -60
+              exit 1
+            }
+          echo "✅ 编译成功"
+
+      - name: 打包 IPA（完整版 + 精简版）
+        run: |
+          APP="build/Build/Products/Release-iphoneos/MyNavigation.app"
+          test -d "$APP" || { echo "未找到编译产物 $APP"; exit 1; }
+
+          # 完整版：含桌面小组件 + 分享扩展（需 $99 账号才能完整工作）
+          rm -rf pkg_full && mkdir -p pkg_full/Payload
+          ditto "$APP" pkg_full/Payload/MyNavigation.app
+          (cd pkg_full && zip -qry ../MyNavigation-full.ipa Payload)
+
+          # 精简版：只有主 App（免费 Apple ID 侧载用这个）
+          rm -rf pkg_lite && mkdir -p pkg_lite/Payload
+          ditto "$APP" pkg_lite/Payload/MyNavigation.app
+          rm -rf pkg_lite/Payload/MyNavigation.app/PlugIns
+          (cd pkg_lite && zip -qry ../MyNavigation-lite.ipa Payload)
+
+          ls -lh *.ipa
+
+      - name: 上传 IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: mynavigation-ipas
+          path: '*.ipa'
+          if-no-files-found: error
+          retention-days: 30

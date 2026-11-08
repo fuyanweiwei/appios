@@ -1,0 +1,8 @@
+# XcodeGen 生成的工程与构建产物（CI 每次重新生成，不入库）
+*.xcodeproj/
+*.xcworkspace/
+build/
+DerivedData/
+xcuserdata/
+*.ipa
+.DS_Store
