@@ -90,7 +90,7 @@ final class ApiClient {
             let contentTypeHeader: String?
             if form.method == "post" {
                 let encoded = form.fields
-                    .map { "\(urlEncode($0.key))=\(urlEncode($0.value))" }
+                    .map { "\(urlEncode($0.0))=\(urlEncode($0.1))" }
                     .joined(separator: "&")
                 finalUrl = form.action
                 method = "POST"
@@ -98,7 +98,7 @@ final class ApiClient {
                 contentTypeHeader = "application/x-www-form-urlencoded"
             } else {
                 var uc = URLComponents(url: form.action, resolvingAgainstBaseURL: false)!
-                uc.queryItems = (uc.queryItems ?? []) + form.fields.map { URLQueryItem(name: $0.key, value: $0.value) }
+                uc.queryItems = (uc.queryItems ?? []) + form.fields.map { URLQueryItem(name: $0.0, value: $0.1) }
                 finalUrl = uc.url ?? form.action
                 method = "GET"
                 bodyData = nil
@@ -106,7 +106,8 @@ final class ApiClient {
             }
             var req = request(finalUrl, method: method, body: bodyData, contentType: contentTypeHeader)
             req.setValue(pageUrl, forHTTPHeaderField: "Referer")
-            let (_, after) = try await perform(req, raw: true)
+            let (_, afterData, _) = try await perform(req, raw: true)
+            let after = String(data: afterData, encoding: .utf8) ?? ""
             // 提交后仍回验证页 = 密码错误 / 表单不对
             return !looksLikeAuthPage(after)
         } catch {
@@ -136,10 +137,12 @@ final class ApiClient {
         guard let formRegex, let inputRegex else { return nil }
         let range = NSRange(html.startIndex..., in: html)
         for fm in formRegex.matches(in: html, range: range) {
-            guard let bodyRange = fm.range(at: 2), let bodyRangeSwift = Range(bodyRange, in: html) else { continue }
+            let bodyRange = fm.range(at: 2)
+            guard bodyRange.location != NSNotFound, let bodyRangeSwift = Range(bodyRange, in: html) else { continue }
             let body = String(html[bodyRangeSwift])
             guard body.range(of: "(?is)type\\s*=\\s*[\"']?password", options: .regularExpression) != nil else { continue }
-            guard let attrsRange = fm.range(at: 1), let attrsSwift = Range(attrsRange, in: html) else { continue }
+            let attrsRange = fm.range(at: 1)
+            guard attrsRange.location != NSNotFound, let attrsSwift = Range(attrsRange, in: html) else { continue }
             let formAttrs = parseAttrs(String(html[attrsSwift]))
             let actionStr = formAttrs["action"]?.trimmingCharacters(in: .whitespaces)
             let action: URL
@@ -153,7 +156,8 @@ final class ApiClient {
             var hasPassword = false
             let inputRange = NSRange(body.startIndex..., in: body)
             for im in inputRegex.matches(in: body, range: inputRange) {
-                guard let r = im.range(at: 1), let rs = Range(r, in: body) else { continue }
+                let r = im.range(at: 1)
+                guard r.location != NSNotFound, let rs = Range(r, in: body) else { continue }
                 let a = parseAttrs(String(body[rs]))
                 guard let name = a["name"], !name.isEmpty else { continue }
                 let type = (a["type"] ?? "text").lowercased()
@@ -185,11 +189,13 @@ final class ApiClient {
         guard let re = try? NSRegularExpression(pattern: "(?is)([a-zA-Z_:][\\w:.-]*)\\s*=\\s*(\"([^\"]*)\"|'([^']*)'|([^\\s\"'>]+))") else { return out }
         let range = NSRange(tag.startIndex..., in: tag)
         for m in re.matches(in: tag, range: range) {
-            guard let keyRange = m.range(at: 1), let keySwift = Range(keyRange, in: tag) else { continue }
+            let keyRange = m.range(at: 1)
+            guard keyRange.location != NSNotFound, let keySwift = Range(keyRange, in: tag) else { continue }
             let key = String(tag[keySwift]).lowercased()
             var raw = ""
             for gi in [3, 4, 5] {
-                if let r = m.range(at: gi), let rs = Range(r, in: tag) {
+                let r = m.range(at: gi)
+                if r.location != NSNotFound, let rs = Range(r, in: tag) {
                     raw = String(tag[rs])
                     break
                 }
@@ -400,7 +406,8 @@ final class ApiClient {
 
     private func rawPerform(_ req: URLRequest) async throws -> (URLResponse, Data) {
         do {
-            return try await session.data(for: req)
+            let (data, resp) = try await session.data(for: req)
+            return (resp, data)
         } catch let e as AuthRequiredException {
             throw e
         } catch let e as ApiException {

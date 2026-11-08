@@ -339,7 +339,7 @@ import SwiftUI
                 alarmCard
             }
 
-            Button { save() } {
+            Button(action: save) {
                 Text(isEdit ? "保存修改" : "发布")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(palette.onPrimary)

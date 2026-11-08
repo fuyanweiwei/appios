@@ -424,7 +424,7 @@ import SwiftUI
 
     var body: some View {
         Button(action: onOpen) {
-            HStack(spacing: 10, alignment: .center) {
+            HStack(alignment: .center, spacing: 10) {
                 SmartImage(url: resolveImg(novel.cover))
                     .frame(width: 56, height: 74)
                     .clipShape(RoundedRectangle(cornerRadius: 8))

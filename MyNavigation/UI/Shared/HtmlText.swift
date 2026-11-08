@@ -87,8 +87,8 @@ func editTextToHtml(_ text: String) -> String {
 
 /// 卡片摘要：去标签 + 截断
 func htmlToPlain(_ html: String, max: Int = 160) -> String {
-    let plain = AttributedString(htmlToAttributedString(html)).characters
-        .description.trimmingCharacters(in: .whitespacesAndNewlines)
+    let plain = String(htmlToAttributedString(html).characters)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
         .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
     return plain.count <= max ? plain : String(plain.prefix(max)) + "…"
 }

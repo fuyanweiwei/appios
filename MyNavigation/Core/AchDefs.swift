@@ -6,6 +6,13 @@ struct AchDef: Identifiable, Equatable {
     let icon: String
     let name: String
     let desc: String
+
+    init(_ id: String, _ icon: String, _ name: String, _ desc: String) {
+        self.id = id
+        self.icon = icon
+        self.name = name
+        self.desc = desc
+    }
 }
 
 let ACH_DEFS: [AchDef] = [

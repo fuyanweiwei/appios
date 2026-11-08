@@ -485,7 +485,7 @@ final class AppViewModel: ObservableObject {
 
     // ====== 防火墙静默验证 ======
 
-    func showAuthPage(_ url: String, retry: @escaping () -> Void, force: Bool) {
+    func showAuthPage(_ url: String, _ retry: @escaping () -> Void, force: Bool) {
         authRetry = retry
         if authUrl != nil { return }
         if authDismissed && !force { return }

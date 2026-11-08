@@ -44,11 +44,22 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             > xcodebuild.log 2>&1 || {
-              echo "❌ 编译失败，最后 60 条 error："
-              grep -n "error:" xcodebuild.log | tail -60
+              echo "❌ 编译失败，全部 error（最多 200 条）："
+              grep -n "error:" xcodebuild.log | head -200
+              echo "=== warning 计数 ==="
+              grep -c "warning:" xcodebuild.log || true
               exit 1
             }
           echo "✅ 编译成功"
+
+      # 失败时上传完整编译日志，方便本地排查
+      - name: 上传编译日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          retention-days: 14
 
       - name: 打包 IPA（完整版 + 精简版）
         run: |

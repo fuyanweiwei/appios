@@ -300,7 +300,9 @@ private struct ToolButton: View {
 // ====== 通用小工具 ======
 
 private func trimSlash(_ s: String) -> String {
-    String(s.dropLast(while: { $0 == "/" }))
+    var t = s
+    while t.hasSuffix("/") { t.removeLast() }
+    return t
 }
 
 private func copyToClipboard(_ text: String) {
@@ -615,7 +617,7 @@ private final class QRScannerController: UIViewController, AVCaptureMetadataOutp
             startSession()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                DispatchQueue.main {
+                DispatchQueue.main.async {
                     if granted {
                         self?.startSession()
                     } else {
@@ -716,7 +718,7 @@ private final class QRScannerController: UIViewController, AVCaptureMetadataOutp
     }
 
     func metadataOutput(_ output: AVCaptureMetadataOutput,
-                        didOutput metadataObjects: [AVCaptureMetadataObject],
+                        didOutput metadataObjects: [AVMetadataObject],
                         from connection: AVCaptureConnection) {
         guard !handled,
               let obj = metadataObjects.first as? AVMetadataMachineReadableCodeObject,

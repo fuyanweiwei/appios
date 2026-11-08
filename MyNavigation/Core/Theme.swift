@@ -29,6 +29,11 @@ struct AccentPreset: Identifiable, Equatable {
     let name: String
     let color: Color
     var id: String { name }
+
+    init(_ name: String, _ color: Color) {
+        self.name = name
+        self.color = color
+    }
 }
 
 let AccentPresets: [AccentPreset] = [
