@@ -187,7 +187,7 @@ class ShareViewController: UIViewController {
         finished = true
         model.message = message
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { [weak self] in
-            self?.extensionContext?.completeRequest()
+            self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         }
     }
 }
