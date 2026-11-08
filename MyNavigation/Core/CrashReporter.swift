@@ -29,14 +29,10 @@ enum CrashReporter {
     private static let lock = NSLock()
 
     static func install() {
-        NSSetUncaughtExceptionHandler { exception in
-            handle(name: exception.name.rawValue,
-                   reason: exception.reason ?? "",
-                   symbols: exception.callStackSymbols.joined(separator: "\n"))
-        }
+        NSSetUncaughtExceptionHandler(crashHandler)
     }
 
-    private static func handle(name: String, reason: String, symbols: String) {
+    static func report(name: String, reason: String, symbols: String) {
         lock.lock()
         if reported { lock.unlock(); return }
         reported = true
@@ -80,4 +76,13 @@ enum BuildInfo {
         f.locale = Locale(identifier: "en_US_POSIX")
         return f.string(from: Date())
     }()
+}
+
+/// 未捕获异常入口：C 函数指针不能捕获上下文，故用顶层函数转调
+private func crashHandler(_ exception: NSException) {
+    CrashReporter.report(
+        name: exception.name.rawValue,
+        reason: exception.reason ?? "",
+        symbols: exception.callStackSymbols.joined(separator: "\n")
+    )
 }
