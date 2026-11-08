@@ -142,7 +142,7 @@ struct CheckInIntent: AppIntent {
         defer { session.finishTasksAndInvalidate() }
 
         do {
-            let (resp, data) = try await session.data(for: req)
+            let (data, resp) = try await session.data(for: req)
             let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
             guard (200..<300).contains(code),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
